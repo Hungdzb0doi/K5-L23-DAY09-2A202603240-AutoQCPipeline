@@ -57,8 +57,29 @@ Do không có người can thiệp gán nhãn, 6 ảnh thiếu file nhãn (`MISS
 3. *Ảnh trùng bị cắt xén quá lớn hoặc thay đổi góc chụp:* Các trường hợp ảnh chụp cùng một cảnh nhưng bị zoom cắt trên 60% làm pHash sai khác vượt quá khoảng cách 10, khiến ảnh bị trùng lặp nội dung vẫn lọt qua bước lọc Intake.
 
 ## 5. Train: raw vs clean (tùy chọn, chấm riêng)
-Chưa chạy (tùy chọn, chấm riêng 15 điểm). 
-Lý do: Tập trung nguồn lực hoàn thiện triệt để 4 module kiểm tra chất lượng nhãn, quy trình hiệu chuẩn và phân tích báo cáo dữ liệu cục bộ; chưa cấu hình môi trường GPU Google Colab cho việc huấn luyện mô hình YOLO26n lặp lại theo nhiều seed. Bài nộp được nghiệm thu theo phạm vi kiểm tra cốt lõi (`check-core`).
+Thí nghiệm huấn luyện công bằng được thực hiện trên Google Colab với cấu hình: model khởi tạo `yolo26n.pt`, 20 epochs, batch size 16, image size 640, cùng tập validation (`data/gold_val`, 40 ảnh) và tập test (`data/test`, 100 ảnh có nhãn chuẩn người gán). Thí nghiệm lặp lại trên 2 seed (0 và 1) cho mỗi biến thể:
+
+| biến thể | #ảnh train | số seed | map50 (TB ± độ lệch) | map50_95 (TB ± độ lệch) | precision (TB ± độ lệch) | recall (TB ± độ lệch) |
+|---|---|---|---|---|---|---|
+| raw | 224 | 2 | 0.726 ± 0.000 | 0.512 ± 0.004 | 0.764 ± 0.061 | 0.649 ± 0.028 |
+| clean | 202 | 2 | 0.711 ± 0.018 | 0.491 ± 0.010 | 0.764 ± 0.033 | 0.629 ± 0.023 |
+
+Chênh mAP50 (clean − raw) = **-0.015** (khoảng -1.5%).
+
+**Phân tích so sánh với độ lệch chuẩn giữa các seed:**
+Chênh lệch mAP50 giữa `clean` và `raw` là -0.015, trong khi độ lệch chuẩn giữa các seed của biến thể `clean` là $\pm 0.018$. Vì $|-0.015| \le 0.018$, mức chênh lệch này **nằm hoàn toàn trong biên độ nhiễu ngẫu nhiên giữa các lần chạy (seed variance)**.
+
+**Kết luận trung thực:** 
+Dựa trên bằng chứng số liệu thực nghiệm, ta **chưa thể khẳng định `clean` tốt hơn `raw` hay ngược lại** về mặt chỉ số mAP50 trên tập test 100 ảnh, do sai khác nằm trong vùng nhiễu thống kê.
+
+**Các giả thuyết giải thích và cách kiểm chứng:**
+1. *Rò rỉ tập test trong tập `raw` (`LEAK_TEST`):* Trong tập `raw`, có 5 ảnh bị rò rỉ trùng lặp trực tiếp với tập test (`data/test`). Khi mô hình huấn luyện trên `raw`, nó đã "học lỏm" trước các ảnh này nên đạt điểm mAP50 ảo (0.726). Khi pipeline loại bỏ 5 ảnh rò rỉ này ở tập `clean`, kết quả phản ánh năng lực tổng quát hóa thực chất của mô hình.
+   - *Cách kiểm chứng:* Đánh giá lại mô hình trên một tập test độc lập lớn hơn (ví dụ 500–1000 ảnh) hoàn toàn không có ảnh trùng với tập huấn luyện ban đầu.
+2. *Kích thước tập huấn luyện bị giảm:* Biến thể `clean` chỉ còn 202 ảnh (giảm 22 ảnh, tức ~10% dữ liệu so với 224 ảnh của `raw`). Với các mô hình deep learning trên tập siêu nhỏ (~200 ảnh), việc giảm số lượng ảnh huấn luyện có thể làm độ phủ mẫu giảm nhẹ (Recall giảm từ 0.649 xuống 0.629).
+   - *Cách kiểm chứng:* Bù đắp 22 ảnh bị loại bằng các ảnh sạch mới thu thập, hoặc áp dụng thêm kỹ thuật tăng cường dữ liệu (data augmentation) để giữ nguyên quy mô tập train.
+3. *Quy mô tập test quá nhỏ:* Tập test chỉ gồm 100 ảnh, nên việc đoán đúng/sai thêm 1–2 vật thể đã làm mAP dao động 1–2%.
+
+**Việc tiếp theo:** Duy trì việc huấn luyện trên tập `clean` vì đã triệt tiêu được rủi ro rò rỉ dữ liệu (data leakage) và loại bỏ các nhãn sai cú pháp / tràn viền, đảm bảo mô hình học được các đặc trưng chuẩn xác và an toàn khi triển khai thực tế.
 
 ## 6. Quyết định và ghi chú AI
 **(a) Quyết định cuối cùng:**
