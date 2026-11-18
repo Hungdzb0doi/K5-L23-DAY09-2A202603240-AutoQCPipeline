@@ -65,7 +65,4 @@ Lý do: Tập trung nguồn lực hoàn thiện triệt để 4 module kiểm tr
 Quyết định cuối cùng của pipeline là **Hold**. 
 Để chuyển trạng thái này thành **Release**, dự án cần cấp thêm ngân sách để con người tiếp tục thẩm định 44 ảnh còn lại trong hàng đợi cảnh báo, hoặc người quản lý dự án rà soát nhanh 44 cảnh báo này và chấp thuận rằng mức độ rủi ro là chấp nhận được trước khi đưa vào huấn luyện mô hình.
 
-**(b) Ghi chú sử dụng AI:**
-- *Prompt chính:* Yêu cầu viết từng hàm trong 4 module (`label_format.py`, `gate.py`, `autofix.py`, `second_opinion.py`) dựa trên docstring mô tả chi tiết đầu vào/đầu ra, chuẩn YOLO 5 cột, cấu trúc Issue và xử lý triệt để ngoại lệ không làm dừng script.
-- *Cách kiểm tra code AI:* Đọc lại từng dòng để đảm bảo code không ghi đè vào thư mục `data/raw/`, chạy kiểm thử tự động với toàn bộ test suite của `pytest`, và kiểm tra kỹ logic bảo toàn số dòng gốc khi xóa/sửa nhiều dòng trong một file nhãn.
-- *Một lần AI viết sai:* Trong `autofix.py`, ban đầu AI đề xuất xóa từng dòng theo chỉ số lặp tuần tự, dẫn đến việc xóa dòng phía trước làm lệch toàn bộ chỉ số dòng của các lỗi phía sau. Tôi đã phát hiện và yêu cầu cấu trúc lại theo hướng gom nhóm lỗi theo từng file, tính toán toàn bộ các dòng cần drop/clip trước rồi mới ghi đè file một lần duy nhất.
+
